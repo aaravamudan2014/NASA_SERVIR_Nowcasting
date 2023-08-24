@@ -57,7 +57,7 @@ def LagrangianPersistenceForecast(train_precip, observed_precip,motion_field):
   n_leadtimes = observed_precip.shape[0]
 
   # Advect the most recent radar rainfall field and make the nowcast.
-  precip_forecast = extrapolate(train_precip[-1], motion_field, n_leadtimes)
+  precip_forecast = extrapolate(last_observation, motion_field, n_leadtimes)
 
   # This shows the shape of the resulting array with [time intervals, rows, cols]
   print("The shape of the resulting array is: ", precip_forecast.shape)

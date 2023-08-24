@@ -10,19 +10,21 @@ import imageio
 import numpy
 from pysteps.datasets import  create_default_pystepsrc
 import netCDF4 as nc
+import time
+import glob
+import numpy as np
+import netCDF4 as nc
 
-
+#code obtained from https://gis.stackexchange.com/questions/420183/how-to-read-and-plot-multiple-tiff-files-in-colaboratory
 def loadTiff(in_image, init=None, size_img=None):
     src = gdal.Open(in_image)
-
-    print(src)
-
     nbands = src.RasterCount
     in_band = src.GetRasterBand(1)  # load one band for size reference
     if init is None:
         xinit,yinit = (0, 0)
     else:
         xinit,yinit = init
+
     if size_img is None:
         block_xsize, block_ysize = (in_band.XSize, in_band.YSize)
     else:
@@ -36,13 +38,21 @@ def loadTiff(in_image, init=None, size_img=None):
 
 
 
-def load_IMERG_data(data_location):
-    #i We'll import the time module to measure the time the importer needed
-    import time
-    import glob
-    import numpy as np
-    import netCDF4 as nc
+def load_IMERG_data_tiff(data_location):
+    start_date = 1
+    end_date = 1
+    
 
+    files = glob.glob(data_location+'imerg*.tif')
+    
+    for filename in files:
+        print(filename)
+        image, block_ysize, block_xsize, nbands = loadTiff(filename)
+        #input()
+    
+    
+def load_IMERG_data(data_location):
+    
 
     start_time = time.time()
     precipitation = []
@@ -152,7 +162,9 @@ def init_IMERG_config_pysteps():
     
 def main():
     init_IMERG_config_pysteps()
-    precipitation, locations, times, metadata = load_IMERG_data(data_location='data/IMERG/Flood_Ghana_032023/')
+    # precipitation, locations, times, metadata = load_IMERG_data_tiff(data_location='data/IMERG/Flood_Ghana_032023/')
+    precipitation, locations, times, metadata = load_IMERG_data_tiff(data_location='data/imerg/')
+    
     sorted_precipitation, sorted_timestamps, sorted_location = sort_IMERG_data(precipitation, times, locations, metadata,generate_animated_gif=False)
     
 if __name__ == '__main__':

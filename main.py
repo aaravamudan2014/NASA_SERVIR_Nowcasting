@@ -5,7 +5,6 @@ from evaluation_metrics import FSS_plot
 
 def main():
     # load data
-
     init_IMERG_config_pysteps()
     precipitation, locations, times, metadata = load_IMERG_data(data_location='data/Flood_Ghana_032023/')
     sorted_precipitation, sorted_timestamps, sorted_location = sort_IMERG_data(precipitation, times, locations, metadata,generate_animated_gif=False)

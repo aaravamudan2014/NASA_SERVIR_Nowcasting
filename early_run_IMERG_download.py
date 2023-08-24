@@ -14,7 +14,7 @@ import numpy as np
 
 # Download and process files
 server = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/gis/early/'
-file_prefix = 'data/imerg/3B-HHR-E.MS.MRG.3IMERG.'
+file_prefix = '3B-HHR-E.MS.MRG.3IMERG.'
 file_suffix = '.V06B.30min.tif'
 #file_suffix = '.V06C.30min.tif'     # this extension is used for data from May 2023 to present 
 # Email associated to PMM account
@@ -63,21 +63,21 @@ def main(argv):
 
     filename = folder + file_prefix + date_stamp + file_suffix
     print('Downloading ' + server + '/' + filename)
-    try:
-        # Download from NASA server
-        get_file(filename)
+    # try:
+    # Download from NASA server
+    get_file(filename)
 
-        # Process file for domain and to fit EF5
-        # Filename has final datestamp as it represents the accumulation upto that point in time
-        gridOutName = 'data/imerg/imerg.' + final_time_gridout.strftime('%Y%m%d%H%M') + '.30minAccum.tif'
-        local_filename = file_prefix + date_stamp + file_suffix
-        NewGrid, nx, ny, gt, proj = processIMERG(local_filename,xmin,ymin,xmax,ymax)
+    # Process file for domain and to fit EF5
+    # Filename has final datestamp as it represents the accumulation upto that point in time
+    gridOutName = 'imerg.' + final_time_gridout.strftime('%Y%m%d%H%M') + '.30minAccum.tif'
+    local_filename = file_prefix + date_stamp + file_suffix
+    NewGrid, nx, ny, gt, proj = processIMERG(local_filename,xmin,ymin,xmax,ymax)
 
-        # Write out processed filename
-        WriteGrid(gridOutName, NewGrid, nx, ny, gt, proj)
-    except Exception as e:
-        print(e)
-        print(filename)
+    # Write out processed filename
+    WriteGrid(gridOutName, NewGrid, nx, ny, gt, proj)
+    # except Exception as e:
+    #print(e)
+    #print(filename)#
 
     # Advance in time
     current_date = current_date + delta_time

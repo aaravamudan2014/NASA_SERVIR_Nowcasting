@@ -15,53 +15,13 @@ import glob
 import numpy as np
 import netCDF4 as nc
 
-#code obtained from https://gis.stackexchange.com/questions/420183/how-to-read-and-plot-multiple-tiff-files-in-colaboratory
-def loadTiff(in_image, init=None, size_img=None):
-    src = gdal.Open(in_image)
-    nbands = src.RasterCount
-    in_band = src.GetRasterBand(1)  # load one band for size reference
-    if init is None:
-        xinit,yinit = (0, 0)
-    else:
-        xinit,yinit = init
-
-    if size_img is None:
-        block_xsize, block_ysize = (in_band.XSize, in_band.YSize)
-    else:
-        block_xsize, block_ysize = size_img
-
-    # read the (multiband) file into an array
-    image = src.ReadAsArray(xinit, yinit, block_xsize, block_ysize)
-    # reshape from bandsxheightxwidth to wxhxb
-    image = np.moveaxis(image, 0, -1)
-    return image, block_ysize, block_xsize, nbands
+import datetime as DT
+import osgeo.gdal as gdal
+from osgeo.gdal import gdalconst
+from osgeo.gdalconst import GA_ReadOnly
 
 
-
-def load_IMERG_data_tiff(data_location):
-    start_date = 1
-    end_date = 1
-    
-
-    files = glob.glob(data_location+'imerg*.tif')
-    
-    for filename in files:
-        print(filename)
-        image, block_ysize, block_xsize, nbands = loadTiff(filename)
-        #input()
-    
-    
-def load_IMERG_data(data_location):
-    
-
-    start_time = time.time()
-    precipitation = []
-    times = []
-    locations = []
-
-    files = glob.glob(data_location+'*.nc4')
-
-    metadata = {'accutime': 2.0,
+metadata = {'accutime': 30.0,
     'cartesian_unit': 'degrees',
     'institution': 'NOAA National Severe Storms Laboratory',
     'projection': '+proj=longlat  +ellps=IAU76',
@@ -78,6 +38,41 @@ def load_IMERG_data(data_location):
     'ypixelsize': 0.04,
     'zerovalue': 0}
 
+
+
+
+def load_IMERG_data_tiff(data_location):
+    precipitation = []
+    times = []
+    files = glob.glob(data_location+'/processed_imerg/*.tif')
+    for file in files:
+        tiff_data = gdal.Open(file, GA_ReadOnly)
+        srcband = tiff_data.GetRasterBand(1)
+        imageArray = np.array(tiff_data.GetRasterBand(1).ReadAsArray())
+        date_str = file.split('/')[-1].split('.')[1]
+        year = date_str[0:4]
+        month = date_str[4:6]
+        day = date_str[6:8]
+        hour = date_str[8:10]
+        minute = date_str[10:12]
+        dt = DT.datetime.strptime(year + '-'+ month + '-' + day + ' '+ hour + ':' + minute, '%Y-%m-%d %H:%M')
+        times.append(dt)
+        precipitation.append(imageArray)
+    precipitation = np.array(precipitation)
+
+    return precipitation, times, 
+    
+def load_IMERG_data_nc4(data_location):
+    
+
+    start_time = time.time()
+    precipitation = []
+    times = []
+    locations = []
+
+    files = glob.glob(data_location+'*.nc4')
+
+    
     for index, file in enumerate(files):
         if index % 5 == 0:
             print('\r', index , " of ", len(files), " have been processed", end='')
@@ -100,40 +95,18 @@ def load_IMERG_data(data_location):
     return precipitation, locations, times, metadata
 
 
-
-def sort_IMERG_data(precipitation, times, locations, metadata,generate_animated_gif=False):
-    timestamp_list = []
-
-
-    for timestamp in times:
-        timestamp = nc.num2date(timestamp[:],timestamp.units, only_use_cftime_datetimes=False)
-        timestamp_list.extend(timestamp)
-
-    metadata['timestamps'] = np.array(timestamp_list, dtype=object)
-
-    sorted_index_array = np.argsort(timestamp_list)
-    sorted_timestamps = np.array(timestamp_list)[sorted_index_array]
+def sort_IMERG_data(precipitation, times):
+    sorted_index_array = np.argsort(times)
+    # print(sorted_index_array)
+    sorted_timestamps = np.array(times)[sorted_index_array]
     sorted_precipitation = np.array(precipitation)[sorted_index_array]
-    sorted_location = np.array(locations)[sorted_index_array]
-    precipitation = sorted_precipitation
-
-    if generate_animated_gif:
-        images = []
-        for i in range(len(sorted_precipitation)):
-            images.append(imageio.core.util.Array(sorted_precipitation[i]))
-        imageio.mimsave('movie.gif', images)
-
-
-
 
     timestep = np.diff(sorted_timestamps)
+
     # Let's inspect the shape of the imported data array
-    print(sorted_precipitation.shape)
+    print("Shape of the sorted precipitation array", sorted_precipitation.shape)
 
-    return sorted_precipitation, sorted_timestamps, sorted_location
-
-# image, block_ysize, block_xsize, nbands = loadTiff('/content/imerg.202201010100.30minAccum.tif')
-
+    return sorted_precipitation, sorted_timestamps
 
 def init_IMERG_config_pysteps():
     # If the configuration file is placed in one of the default locations
@@ -160,12 +133,38 @@ def init_IMERG_config_pysteps():
                                             'timestep': 30}
     print(pysteps.rcparams.data_sources['imerg'])
     
+
+def generate_animation(sorted_precipitation):
+    import matplotlib.animation as animation
+    from matplotlib import rc
+
+    print('Genearting animation')
+    rc('animation', html='jshtml')
+    ims = []
+
+    fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(12,4))
+
+    for i in range(len(sorted_precipitation)):
+        ims.append([axs.imshow(sorted_precipitation[i],  animated=True)])
+
+    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False,
+                                    repeat_delay=1000)
+    ani.save('observed_precipitation.gif', writer='imagemagick', fps=30)
+
+
+def generate_animation_pysteps(sorted_precipitation):
+    from pysteps.visualization.animations import animate
+    animate(sorted_precipitation, geodata=metadata, time_wait=0.001)
+
 def main():
     init_IMERG_config_pysteps()
     # precipitation, locations, times, metadata = load_IMERG_data_tiff(data_location='data/IMERG/Flood_Ghana_032023/')
-    precipitation, locations, times, metadata = load_IMERG_data_tiff(data_location='data/imerg/')
+    precipitation, times = load_IMERG_data_tiff(data_location="data/Côte d'Ivoire_18_06_2018/")
     
-    sorted_precipitation, sorted_timestamps, sorted_location = sort_IMERG_data(precipitation, times, locations, metadata,generate_animated_gif=False)
+    sorted_precipitation, sorted_timestamps = sort_IMERG_data(precipitation, times)
+    # generate_animation(sorted_precipitation)
+    generate_animation_pysteps(sorted_precipitation)
+    
     
 if __name__ == '__main__':
     main()

@@ -1,5 +1,5 @@
-data/
 !data/early_run_IMERG_download.py
+data/
 results
 figures
 __pycache__

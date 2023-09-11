@@ -8,10 +8,30 @@ import datetime
 import os
 
 
-def FSS_plot(forecasts, observed_precip, methods, start_index):
+def FSS_plot(forecasts, observed_precip, methods, start_index, event_identifier):
+    """Function for generating Fraction Skill SCore (FSS) scores for passed forecasts
 
-    precip_forecast, persistence_forecast, linda_forecast, steps_forecast = forecasts
+    Args:
+        forecasts (tuple): tuple of forecasts, this show follow the same order as the variable methods passed in
+        observed_precip (np.array): ground truth  precipitation data
+        methods (list of str): list of methods
+        start_index (int): Start index in the training data (used for filenames while saving)
+        event_identifier (str): Name of the event
 
+    Returns:
+        _type_: _description_
+    """
+
+    for index, method in enumerate(methods):
+        if method == 'Naive Persistence':
+            persistence_forecast = forecasts[index]
+        if method == 'Lagrangian Persistence':
+            precip_forecast = forecasts[index]
+        if method == 'LINDA':
+            linda_forecast = forecasts[index]
+        if method == 'STEPS':
+            steps_forecast = forecasts[index]
+        
     fss = verification.get_method("FSS")
 
     # Compute fractions skill score (FSS) for all lead times for different scales using a 1 mm/h detection threshold.
@@ -29,6 +49,7 @@ def FSS_plot(forecasts, observed_precip, methods, start_index):
     # Set the threshold
     thr = 1.0  # in mm/h
 
+    os.makedirs('figures/'+event_identifier, exist_ok=True)
     # Now plot it
     plt.figure(figsize=(10,10))
     # Calculate the FSS for every lead time and all predefined scales.
@@ -40,7 +61,7 @@ def FSS_plot(forecasts, observed_precip, methods, start_index):
             prediction_forecast = precip_forecast
         elif method == 'LINDA':
             prediction_forecast = linda_forecast
-        elif method == 'steps':
+        elif method == 'STEPS':
             prediction_forecast = steps_forecast
 
         for i in range(len(observed_precip)):
@@ -65,121 +86,32 @@ def FSS_plot(forecasts, observed_precip, methods, start_index):
     )
     plt.autoscale(axis="x", tight=True)
     plt.tight_layout()
-    plt.savefig('figures/FSS_comparison_'+str(start_index)+'.png')
+    plt.savefig('figures/'+event_identifier+'/FSS_comparison_'+str(start_index)+'.png')
     return score
 
 
-def create_precipitation_prediction_plots(prediction_timesteps,observed_precip,methods, metadata, forecasts, start_time):
-    min = -21.4
-    xmax = 30.4
-    ymin = -2.9
-    ymax = 33.1
-    geodata = {'x1':-21.4,
-            'x2':30.4,
-            'y1':-2.9,
-            'y2': 33.1,
-            'yorigin':'lower',
-            'projection':'EPSG:2269'
-            }
-    precip_forecast, persistence_forecast, linda_forecast, steps_forecast = forecasts
+def save_tiff_files( forecasts, start_time, event_identifier, methods, best_method):
+    """ This function generates tiff files and saves them in the appropriate directory. 
+        The directory will be results/**event_name**/**start_time**
 
-    fig, axs = plt.subplots(nrows=prediction_timesteps, ncols=len(methods), figsize=(50,50))
-
-    for j in range(prediction_timesteps):
-        for i, ax in enumerate(axs[j].flatten()):
-            plt.sca(ax)
-            if i == 0 and j==0 :
-                plot_precip_field(np.flip(observed_precip[j].T,0), axis="off",colorbar=False, ax=ax,geodata=metadata)
-                plt.title('Observed precipitation')
-            elif i == 1 and j==0:
-                plot_precip_field(np.flip(precip_forecast[j].T,0), axis="off",colorbar=False, ax=ax,geodata=metadata)
-                plt.title('LP forecast')
-            elif i == 2 and j==0:
-                plot_precip_field(np.flip(persistence_forecast[j].T,0), axis="off",colorbar=False, ax=ax,geodata=metadata)
-                plt.title('NP forecast')
-            elif i == 3 and j==0:
-                plot_precip_field(np.flip(linda_forecast[j].T,0), axis="off",colorbar=False, ax=ax,geodata=metadata)
-                plt.title('LINDA forecast')
-            elif i == 4 and j==0:
-                plot_precip_field(np.flip(steps_forecast[j].T,0), axis="off",colorbar=False, ax=ax,geodata=metadata)
-                plt.title('STEPS forecast')
-            
-    plt.suptitle('Initialization time: ' + str(start_time))
-    plt.tight_layout()
-    plt.savefig('figures/predicted_precipitation_start_index' + str(start_time) + '.png', dpi=100)
-
-
-
-def create_animation(prediction_timesteps,observed_precip, metadata, forecasts, start_time):
-    min = -21.4
-    xmax = 30.4
-    ymin = -2.9
-    ymax = 33.1
-    geodata = {'x1':-21.4,
-            'x2':30.4,
-            'y1':-2.9,
-            'y2': 33.1,
-            'yorigin':'lower',
-            'projection':'EPSG:2269'
-            }
-    precip_forecast, persistence_forecast, linda_forecast, steps_forecast = forecasts
-    rc('animation', html='jshtml')
-    ims = []
-    fig, axs = plt.subplots(nrows=1, ncols=5, figsize=(12,4))
-
-    for i in range(1,len(observed_precip)):
-
-        for j, ax in enumerate(axs.flatten()):
-            plt.sca(ax)
-            plt.xticks([])
-            plt.yticks([])
-            if j == 0:
-            # plot_precip_field(observed_precip[j], axis="off",colorbar=False, ax=ax)
-                plt.title('Observed precipitation')
-            elif j == 1:
-            # plot_precip_field(precip_forecast[j], axis="off",colorbar=False, ax=ax)
-                plt.title('LP forecast')
-            elif j == 2:
-            # plot_precip_field(persistence_forecast[j], axis="off",colorbar=False, ax=ax)
-                plt.title('NP forecast')
-            elif j == 3:
-            # plot_precip_field(linda_forecast[j], axis="off",colorbar=False, ax=ax)
-                plt.title('LINDA forecast')
-            elif j == 4:
-            # plot_precip_field(linda_forecast[j], axis="off",colorbar=False, ax=ax)
-                plt.title('STEPS forecast')
-        plt.suptitle('Initialization time: ' + str(start_time))
-        plt.tight_layout()
-
-        im_1 = axs.flatten()[3].imshow(np.flip(linda_forecast[i].T,0), animated=True)
-        if i == 0:
-            axs.flatten()[1].imshow(np.zeros_like(np.flip(persistence_forecast[0].T,0)))  # show an initial one first
-        im_2 = axs.flatten()[2].imshow(np.flip(persistence_forecast[i].T,0), animated=True)
-        if i == 0:
-            axs.flatten()[1].imshow(np.zeros_like(np.flip(observed_precip[0].T,0)))  # show an initial one first
-        im_3 = axs.flatten()[1].imshow(np.flip(precip_forecast[i].T,0), animated=True)
-        if i == 0:
-            axs.flatten()[1].imshow(np.zeros_like(np.flip(observed_precip[0].T,0)))  # show an initial one first
-
-        im_4 = axs.flatten()[4].imshow(np.flip(steps_forecast[i].T,0), animated=True)
-        if i == 0:
-            axs.flatten()[1].imshow(np.zeros_like(np.flip(observed_precip[0].T,0)))  # show an initial one first
-
-        im_5 = axs.flatten()[0].imshow(np.flip(observed_precip[i].T,0), animated=True)
-        if i == 0:
-            axs.flatten()[1].imshow(np.zeros_like(np.flip(observed_precip[0].T,0)))  # show an initial one first
+    Args:
+        forecasts (tuple): tuple containing all the forecasts, it has to follow the same order as methods
+        start_time (DateTime): Start time of the prediction 
+        event_identifier (str): Name of the event
+        methods (list of str):  list ofnowcasting methods
+        best_method (str) Method chosen for saving (typically the best method)
+    """
+    for index, method in enumerate(methods):
+        if method == 'Naive Persistence':
+            persistence_forecast = forecasts[index]
+        if method == 'Lagrangian Persistence':
+            precip_forecast = forecasts[index]
+        if method == 'LINDA':
+            linda_forecast = forecasts[index]
+        if method == 'STEPS':
+            steps_forecast = forecasts[index]
         
-        ims.append([im_1, im_2, im_3, im_4, im_5])
-
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False,
-                                    repeat_delay=1000)
-    ani.save('figures/precipitation_forecasts_'+str(start_time)+'.gif', writer='imagemagick', fps=30)
-
-
-def save_tiff_files(prediction_timesteps,observed_precip, forecasts, start_time, event_name):
-
-    precip_forecast, persistence_forecast, linda_forecast, steps_forecast = forecasts
-    for model_index in range(4):
+    for model_index in range(len(forecasts)):
         if model_index == 0:
             predicted_forecast = precip_forecast
             model_name = 'lagrangian'
@@ -193,9 +125,20 @@ def save_tiff_files(prediction_timesteps,observed_precip, forecasts, start_time,
             predicted_forecast = steps_forecast
             model_name = 'STEPS'
 
-        os.makedirs('results/'+event_name, exist_ok=True)
-        for index, predicted_observation in enumerate(steps_forecast):
-            
-            filename = 'results/' +event_name+'/'+ str(start_time + datetime.timedelta(minutes= int(index) *30 )) +'.tif'
+        os.makedirs('results/'+event_identifier, exist_ok=True)
+
+        if best_method == 'STEPS':
+            best_model_forecast  = steps_forecast   
+        elif best_method == 'LINDA':
+            best_model_forecast  = linda_forecast   
+        elif best_method == 'lagrangian':
+            best_model_forecast  = precip_forecast 
+        elif best_method == 'persistence':
+            best_model_forecast  = persistence_forecast 
+          
+        
+        for index, predicted_observation in enumerate(best_model_forecast):
+            os.makedirs('results/'+event_identifier+'/'+str(start_time), exist_ok=True)
+            filename = 'results/' +event_identifier+'/'+ str(start_time) +'/'+ str(start_time + datetime.timedelta(minutes= int(index) *30 )) +'.tif'
             plt.imshow(predicted_observation)
             plt.savefig(filename)

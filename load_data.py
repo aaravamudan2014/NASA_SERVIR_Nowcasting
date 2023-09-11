@@ -20,7 +20,7 @@ import osgeo.gdal as gdal
 from osgeo.gdal import gdalconst
 from osgeo.gdalconst import GA_ReadOnly
 
-
+# metadata variables, useful for plotting when you want to visualize map in background
 metadata = {'accutime': 30.0,
     'cartesian_unit': 'degrees',
     'institution': 'NOAA National Severe Storms Laboratory',
@@ -39,15 +39,21 @@ metadata = {'accutime': 30.0,
     'zerovalue': 0}
 
 
-
-
 def load_IMERG_data_tiff(data_location):
+    """Function to load IMERG tiff data from the associate event folder
+
+    Args:
+        data_location (str): string path to the location of the event data
+
+    Returns:
+        precipitation (np.array): np.array of precipitations (not sorted by time)
+        times (np.array): np.array of date times that match 1:q with precipitation
+    """
     precipitation = []
     times = []
     files = glob.glob(data_location+'/processed_imerg/*.tif')
     for file in files:
         tiff_data = gdal.Open(file, GA_ReadOnly)
-        srcband = tiff_data.GetRasterBand(1)
         imageArray = np.array(tiff_data.GetRasterBand(1).ReadAsArray())
         date_str = file.split('/')[-1].split('.')[1]
         year = date_str[0:4]
@@ -63,13 +69,20 @@ def load_IMERG_data_tiff(data_location):
     return precipitation, times, 
     
 def load_IMERG_data_nc4(data_location):
-    
+    """ [DEPRECATED] Function to load IMERG nc4 data from the associate  folder
+
+    Args:
+        data_location (str): string path to the location of the event data
+
+    Returns:
+        precipitation (np.array): np.array of precipitations (not sorted by time)
+        times (np.array): np.array of date times that match 1:q with precipitation
+    """
 
     start_time = time.time()
     precipitation = []
     times = []
-    locations = []
-
+    
     files = glob.glob(data_location+'*.nc4')
 
     
@@ -83,7 +96,6 @@ def load_IMERG_data_nc4(data_location):
         latitude = ds.variables['lat']
 
         times.append(timestamp)
-        locations.append((latitude[0], longitude[0]))
         precipitation.append(precipitationCal[0])
 
     precipitation = np.array(precipitation)
@@ -92,10 +104,21 @@ def load_IMERG_data_nc4(data_location):
     print("Precipitation data imported")
     print("Importing the data took ", (end_time - start_time), " seconds")
 
-    return precipitation, locations, times, metadata
+    return precipitation, times
 
 
 def sort_IMERG_data(precipitation, times):
+    """Function to sort the imerg data based on precitpitation and times array
+
+    Args:
+        precipitation (np.array): numpy array of precipitation images
+        times (np.array): numpy array of datetime objects that match 1:1 with precipitation array
+
+    Returns:
+        sorted_precipitation (np.array): sortef numpy array of precipitation images
+        sorted_timestamps (np.array): sorted numpy array of datetime objects that match 1:1 with sorted precipitation array
+
+    """
     sorted_index_array = np.argsort(times)
     # print(sorted_index_array)
     sorted_timestamps = np.array(times)[sorted_index_array]
@@ -109,6 +132,10 @@ def sort_IMERG_data(precipitation, times):
     return sorted_precipitation, sorted_timestamps
 
 def init_IMERG_config_pysteps():
+    """Function to initialize Pysteps for IMERG data
+        This has been adapted from Pysteps' tutorial colab notebook
+    
+    """
     # If the configuration file is placed in one of the default locations
     # (https://pysteps.readthedocs.io/en/latest/user_guide/set_pystepsrc.html#configuration-file-lookup)
     # it will be loaded automatically when pysteps is imported.
@@ -162,7 +189,8 @@ def main():
     precipitation, times = load_IMERG_data_tiff(data_location="data/Côte d'Ivoire_18_06_2018/")
     
     sorted_precipitation, sorted_timestamps = sort_IMERG_data(precipitation, times)
-    # generate_animation(sorted_precipitation)
+
+    generate_animation(sorted_precipitation)
     generate_animation_pysteps(sorted_precipitation)
     
     

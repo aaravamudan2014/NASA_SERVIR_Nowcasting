@@ -123,7 +123,7 @@ def LINDAForecast(train_precip, observed_precip,motion_field):
                                 ,add_perturbations =False)
 
   # This shows the shape of the resulting array with [time intervals, rows, cols]
-  print("The shape of the resulting array is: ", linda_forecast)
+  print("The shape of the resulting array is: ", linda_forecast.shape)
 
   end = time.time()
   print("Advecting the radar rainfall fields took ", (end - start), " seconds")

@@ -88,14 +88,19 @@ def FSS_plot(forecasts, observed_precip, methods, start_index, event_identifier)
     plt.tight_layout()
     plt.savefig('figures/'+event_identifier+'/FSS_comparison_'+str(start_index)+'.png')
     return score
+import osgeo.gdal as gdal
+import osgeo.osr as osr
+from osgeo.gdal import gdalconst
+from osgeo.gdalconst import GA_ReadOnly
 
+from data.early_run_IMERG_download import *
 
 def save_tiff_files( forecasts, start_time, event_identifier, methods, best_method):
     """ This function generates tiff files and saves them in the appropriate directory. 
         The directory will be results/**event_name**/**start_time**
 
     Args:
-        forecasts (tuple): tuple containing all the forecasts, it has to follow the same order as methods
+        forecasts (list): list containing all the forecasts, it has to follow the same order as methods
         start_time (DateTime): Start time of the prediction 
         event_identifier (str): Name of the event
         methods (list of str):  list ofnowcasting methods
@@ -136,9 +141,19 @@ def save_tiff_files( forecasts, start_time, event_identifier, methods, best_meth
         elif best_method == 'persistence':
             best_model_forecast  = persistence_forecast 
           
-        
+        # Domain coordinates
+        xmin = -21.4
+        xmax = 30.4
+        ymin = -2.9
+        ymax = 33.1
+  
         for index, predicted_observation in enumerate(best_model_forecast):
             os.makedirs('results/'+event_identifier+'/'+str(start_time), exist_ok=True)
             filename = 'results/' +event_identifier+'/'+ str(start_time) +'/'+ str(start_time + datetime.timedelta(minutes= int(index) *30 )) +'.tif'
-            plt.imshow(predicted_observation)
-            plt.savefig(filename)
+            drv = gdal.GetDriverByName("GTiff")
+            height = predicted_observation.shape[0]
+            width = predicted_observation.shape[1]
+            ds = drv.Create(filename, width, height, 6, gdal.GDT_Float32)
+            ds.SetGeoTransform([xmin, height,0, ymin,0, -width])
+            ds.SetProjection('+proj=longlat  +ellps=IAU76')
+            ds.GetRasterBand(1).WriteArray(predicted_observation)

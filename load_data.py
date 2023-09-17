@@ -115,7 +115,7 @@ def sort_IMERG_data(precipitation, times):
         times (np.array): numpy array of datetime objects that match 1:1 with precipitation array
 
     Returns:
-        sorted_precipitation (np.array): sortef numpy array of precipitation images
+        sorted_precipitation (np.array): sorted numpy array of precipitation images
         sorted_timestamps (np.array): sorted numpy array of datetime objects that match 1:1 with sorted precipitation array
 
     """

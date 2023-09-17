@@ -51,7 +51,7 @@ def main(event_name):
         create_animation(observed_precip, forecasts, sorted_timestamps[start_index], event_identifier=event_name, methods=methods)
 
         # saves the tiff files of the predictions (stored in figures/**event_name**/**start_time**/)
-        save_tiff_files( forecasts, sorted_timestamps[start_index],event_identifier=event_name, methods=methods, best_method= 'STEPS')
+        save_tiff_files(forecasts, sorted_timestamps[start_index],event_identifier=event_name, methods=methods, best_method= 'LINDA')
         print("Results calculated for one training setup instance")
         
 
@@ -61,5 +61,6 @@ if __name__ == "__main__":
     for index, row in event_data_df.iterrows():
         event_name = row['Country'] + '_' + row['Date'].replace('/', '_')
         main(event_name)
+        break
 
 

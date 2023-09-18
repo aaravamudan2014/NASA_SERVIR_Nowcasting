@@ -61,6 +61,5 @@ if __name__ == "__main__":
     for index, row in event_data_df.iterrows():
         event_name = row['Country'] + '_' + row['Date'].replace('/', '_')
         main(event_name)
-        break
 
 

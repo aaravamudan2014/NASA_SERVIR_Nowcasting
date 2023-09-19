@@ -110,7 +110,7 @@ def LINDAForecast(train_precip, observed_precip,motion_field):
   # extrapolate = nowcasts.get_method("linda")
   from pysteps.nowcasts import linda
   # You can use the precipitation observations directly in mm/h for this step.
-  last_observation = train_precip[-1]
+  # last_observation = train_precip[-1]
 
   # last_observation[~np.isfinite(last_observation)] = metadata["zerovalue"]
 
@@ -119,7 +119,7 @@ def LINDAForecast(train_precip, observed_precip,motion_field):
   # a forecast that covers these time intervals.
   n_leadtimes = observed_precip.shape[0]
   # Advect the most recent radar rainfall field and make the nowcast.
-  linda_forecast = linda.forecast(train_precip, motion_field, n_leadtimes,max_num_features=15, kmperpixel = 10, timestep=30
+  linda_forecast = linda.forecast(train_precip, motion_field, n_leadtimes,max_num_features=15
                                 ,add_perturbations =False)
 
   # This shows the shape of the resulting array with [time intervals, rows, cols]

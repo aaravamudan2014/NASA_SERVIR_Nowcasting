@@ -4,6 +4,7 @@ import numpy as np
 from pysteps.visualization import plot_precip_field
 import matplotlib.animation as animation
 from matplotlib import rc
+from matplotlib.animation import FuncAnimation, PillowWriter 
 import datetime
 import os
 
@@ -148,8 +149,11 @@ def save_tiff_files( forecasts, start_time, event_identifier, methods, best_meth
         ymax = 33.1
   
         for index, predicted_observation in enumerate(best_model_forecast):
-            os.makedirs('results/'+event_identifier+'/'+str(start_time), exist_ok=True)
-            filename = 'results/' +event_identifier+'/'+ str(start_time) +'/'+ str(start_time + datetime.timedelta(minutes= int(index) *30 )) +'.tif'
+            start_time_str = "{:%Y_%m_%d_%H_%M_%S}".format(start_time)
+            pred_time_str = "{:%Y_%m_%d_%H_%M_%S}".format(start_time + datetime.timedelta(minutes= int(index) *30 ))
+
+            os.makedirs('results/'+event_identifier+'/'+start_time_str, exist_ok=True)
+            filename = 'results/' +event_identifier+'/'+ start_time_str +'/'+ pred_time_str +'.tif'
             drv = gdal.GetDriverByName("GTiff")
             height = predicted_observation.shape[0]
             width = predicted_observation.shape[1]

@@ -48,10 +48,17 @@ for event_name in event_names:
     metadata['timestamps'] = sorted_timestamps
     # precipitations = np.stack(sorted_precipitation, axis=0)
     precipitations = sorted_precipitation
-    path_outputs = 'precipitation_images/'+event_name
+
+    path_outputs = 'results/'+event_name
 
     if not os.path.isdir(path_outputs):
         os.mkdir(path_outputs)
+
+    temp_path = f"results/{event_name}/temp_images"
+
+    if not os.path.isdir(temp_path):
+        os.mkdir(temp_path)
+
 
     animate(precipitations, timestamps_obs  = sorted_timestamps, timestep_min = 30, geodata=metadata,
             savefig=True, fig_dpi=100, fig_format='png', path_outputs='precipitation_images/'+event_name)

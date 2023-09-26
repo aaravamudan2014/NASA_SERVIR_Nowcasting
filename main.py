@@ -40,7 +40,7 @@ def main(event_name):
         
         forecasts = [precip_forecast, persistence_forecast, linda_forecast, steps_forecast]
 
-        methods = ['Naive Persistence', 'Lagrangian Persistence','LINDA' , 'STEPS']
+        methods = ['Lagrangian Persistence','Naive Persistence', 'LINDA' , 'STEPS']
 
         # Evaluation function
         scores = FSS_plot(forecasts, observed_precip, methods, start_index, event_identifier=event_name)

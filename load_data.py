@@ -3,11 +3,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from osgeo import gdal
-from pysteps.io.nowcast_importers import import_netcdf_pysteps
 from cftime import num2pydate
 from datetime import datetime
 import imageio
 import numpy
+
+from pysteps.io.nowcast_importers import import_netcdf_pysteps
 from pysteps.datasets import  create_default_pystepsrc
 import netCDF4 as nc
 import time
@@ -145,7 +146,6 @@ def init_IMERG_config_pysteps():
 
     # Import pysteps and load the new configuration file
     import pysteps
-    from pprint import pprint
 
     _ = pysteps.load_config_file(config_file_path, verbose=True)
     # The default parameters are stored in pysteps.rcparams.

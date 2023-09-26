@@ -81,7 +81,7 @@ def StepsForecast(train_precip, observed_precip,motion_field):
   n_leadtimes = observed_precip.shape[0]
   n_ens_members = 20
   # Advect the most recent radar rainfall field and make the nowcast.
-  precip_forecast_ensemble = extrapolate(train_precip[-3:, :, :], 
+  precip_forecast_ensemble = extrapolate(train_precip, 
                                 motion_field, 
                                 n_leadtimes,
                                 n_ens_members,

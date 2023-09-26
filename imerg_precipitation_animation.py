@@ -46,14 +46,14 @@ for event_name in event_names:
     sorted_precipitation, sorted_timestamps = sort_IMERG_data(precipitation, times)
 
     metadata['timestamps'] = sorted_timestamps
-    precipitations = np.stack(sorted_precipitation, axis=0)
-
+    # precipitations = np.stack(sorted_precipitation, axis=0)
+    precipitations = sorted_precipitation
     path_outputs = 'precipitation_images/'+event_name
 
     if not os.path.isdir(path_outputs):
         os.mkdir(path_outputs)
 
-    animate(precipitations, timestamps_obs  = sorted_timestamps, timestep_min = 2, geodata=metadata,
+    animate(precipitations, timestamps_obs  = sorted_timestamps, timestep_min = 30, geodata=metadata,
             savefig=True, fig_dpi=100, fig_format='png', path_outputs='precipitation_images/'+event_name)
     
 

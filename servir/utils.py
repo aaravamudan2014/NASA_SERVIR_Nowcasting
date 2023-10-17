@@ -1,12 +1,15 @@
-# code obtained from https://gis.stackexchange.com/questions/420183/how-to-read-and-plot-multiple-tiff-files-in-colaboratory
-
+# to download IMERG early run data from online
+# Import all libraries
+import sys
+import subprocess
+import os
+import datetime as DT
+import osgeo.gdal as gdal
+from osgeo.gdalconst import GA_ReadOnly
+#from gdalconst import GA_ReadOnly
+#from gdalconst import *
 import numpy as np
-import matplotlib.pyplot as plt
-from osgeo import gdal
-from cftime import num2pydate
-from datetime import datetime
-import imageio
-import numpy
+
 
 from pysteps.io.nowcast_importers import import_netcdf_pysteps
 from pysteps.datasets import  create_default_pystepsrc
@@ -21,23 +24,51 @@ import osgeo.gdal as gdal
 from osgeo.gdal import gdalconst
 from osgeo.gdalconst import GA_ReadOnly
 
-# metadata variables, useful for plotting when you want to visualize map in background
-metadata = {'accutime': 30.0,
-    'cartesian_unit': 'degrees',
-    'institution': 'NOAA National Severe Storms Laboratory',
-    'projection': '+proj=longlat  +ellps=IAU76',
-    'threshold': 0.0125,
-    'timestamps': None,
-    'transform': None,
-    'unit': 'mm/h',
-    'x1': -21.4,
-    'x2': 30.4,
-    'xpixelsize': 0.04,
-    'y1': -2.9,
-    'y2': 33.1,
-    'yorigin': 'upper',
-    'ypixelsize': 0.04,
-    'zerovalue': 0}
+def ReadandWarp(gridFile,xmin,ymin,xmax,ymax):
+    #Read grid and warp to domain grid
+    #Assumes no reprojection is necessary, and EPSG:4326
+    rawGridIn = gdal.Open(gridFile, GA_ReadOnly)
+    # Adjust grid
+    pre_ds = gdal.Translate('OutTemp.tif', rawGridIn, options="-co COMPRESS=Deflate -a_nodata 29999 -a_ullr -180.0 90.0 180.0 -90.0")
+
+    gt = pre_ds.GetGeoTransform()
+    proj = pre_ds.GetProjection()
+    nx = pre_ds.GetRasterBand(1).XSize
+    ny = pre_ds.GetRasterBand(1).YSize
+    NoData = 29999
+    pixel_size = gt[1]
+
+    #Warp to model resolution and domain extents
+    ds = gdal.Warp('', pre_ds, srcNodata=NoData, srcSRS='EPSG:4326', dstSRS='EPSG:4326', dstNodata='-9999', format='VRT', xRes=pixel_size, yRes=-pixel_size, outputBounds=(xmin,ymin,xmax,ymax))
+
+    WarpedGrid = ds.ReadAsArray()
+    new_gt = ds.GetGeoTransform()
+    new_proj = ds.GetProjection()
+    new_nx = ds.GetRasterBand(1).XSize
+    new_ny = ds.GetRasterBand(1).YSize
+
+    return WarpedGrid, new_nx, new_ny, new_gt, new_proj
+
+def WriteGrid(gridOutName, dataOut, nx, ny, gt, proj):
+    #Writes out a GeoTIFF based on georeference information in RefInfo
+    driver = gdal.GetDriverByName('GTiff')
+    dst_ds = driver.Create(gridOutName, nx, ny, 1, gdal.GDT_Float32, ['COMPRESS=DEFLATE'])
+    dst_ds.SetGeoTransform(gt)
+    dst_ds.SetProjection(proj)
+    dataOut.shape = (-1, nx)
+    dst_ds.GetRasterBand(1).WriteArray(dataOut, 0, 0)
+    dst_ds.GetRasterBand(1).SetNoDataValue(-9999.0)
+    dst_ds = None
+
+def processIMERG(local_filename,llx,lly,urx,ury):
+  # Process grid
+  # Read and subset grid
+  NewGrid, nx, ny, gt, proj = ReadandWarp(local_filename,llx,lly,urx,ury)
+
+  # Scale value
+  NewGrid = NewGrid*0.1
+
+  return NewGrid, nx, ny, gt, proj
 
 
 def load_IMERG_data_tiff(data_location):
@@ -159,40 +190,3 @@ def init_IMERG_config_pysteps():
                                             'root_path': '/content/IMERG/Flood_Ghana_032023/',
                                             'timestep': 30}
     print(pysteps.rcparams.data_sources['imerg'])
-    
-
-def generate_animation(sorted_precipitation):
-    import matplotlib.animation as animation
-    from matplotlib import rc
-
-    print('Genearting animation')
-    rc('animation', html='jshtml')
-    ims = []
-
-    fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(12,4))
-
-    for i in range(len(sorted_precipitation)):
-        ims.append([axs.imshow(sorted_precipitation[i],  animated=True)])
-
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=False,
-                                    repeat_delay=1000)
-    ani.save('observed_precipitation.gif', writer='imagemagick', fps=30)
-
-
-def generate_animation_pysteps(sorted_precipitation):
-    from pysteps.visualization.animations import animate
-    animate(sorted_precipitation, geodata=metadata, time_wait=0.001)
-
-def main():
-    init_IMERG_config_pysteps()
-    # precipitation, locations, times, metadata = load_IMERG_data_tiff(data_location='data/IMERG/Flood_Ghana_032023/')
-    precipitation, times = load_IMERG_data_tiff(data_location="data/Côte d'Ivoire_18_06_2018/")
-    
-    sorted_precipitation, sorted_timestamps = sort_IMERG_data(precipitation, times)
-
-    generate_animation(sorted_precipitation)
-    generate_animation_pysteps(sorted_precipitation)
-    
-    
-if __name__ == '__main__':
-    main()

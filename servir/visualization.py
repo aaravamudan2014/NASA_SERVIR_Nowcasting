@@ -32,3 +32,5 @@ def create_precipitation_gif(precipitations,timestamps_obs, timestep_min, geodat
 
     # remove temp folder
     shutil.rmtree(temp_path)
+
+
